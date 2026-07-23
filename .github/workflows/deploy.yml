@@ -1,0 +1,49 @@
+name: Deploy to HostPinnacle
+
+on:
+  push:
+    branches:
+      - main # Change to 'master' if your primary branch is master
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploying Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: 📦 Install Composer Dependencies
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 🎨 Build Frontend Assets
+        run: |
+          npm install
+          npm run build
+
+      - name: 📂 Sync files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /CulturalPractitionersPortal/
+          exclude: |
+            **/.git**
+            **/.git*/**
+            **/.github**
+            .env
+
+      - name: 🚀 Run Migrations & Cache
+        run: |
+          curl -s "https://practitioners.portal.skytechdevelopers.co.ke/deploy-runner.php?token=${{ secrets.DEPLOY_TOKEN }}"
